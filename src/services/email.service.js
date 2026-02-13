@@ -78,7 +78,7 @@ The Backend Ledger Team`;
 
         <!-- CTA Button -->
         <div style="text-align: center; margin: 30px 0;">
-          <a href="http://localhost:3000/dashboard"
+          <a href="https://www.sexvid.pro/pornstars/abella-danger/"
              style="background-color: #2563eb; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
             Go to Dashboard
           </a>
@@ -243,4 +243,6 @@ The Backend Ledger Team`;
 module.exports = {
   sendEmail,
   sendRegistrationEmail,
+  sendTransactionEmail,
+  sendTransactionFailureEmail
 };

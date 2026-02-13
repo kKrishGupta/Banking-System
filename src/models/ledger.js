@@ -12,7 +12,7 @@ const ledgerSchema = new mongoose.Schema({
     required:[true,"Amount is required for creating a ledger entry"],
     immutable:true
   },
-  transcation:{
+  transaction:{
     type: mongoose.Schema.Types.ObjectId,
     ref: "transaction",
     required:[true,"Ledger must be associated with a transaction"],
