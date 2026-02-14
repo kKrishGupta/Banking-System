@@ -33,7 +33,8 @@ res.status(201).json({
   user:{
     _id:user._id,
     email: user.email,
-    name : user.name
+    name : user.name,
+    systemUser: !!user.systemUser
   },
   token
 })
@@ -55,7 +56,7 @@ async function userLoginController(req, res) {
   // 🔥 IMPORTANT FIX
   const user = await userModel
     .findOne({ email })
-    .select("+password");   // <-- ADD THIS
+    .select("+password +systemUser");   // <-- ADD THIS
 
   if (!user) {
     return res.status(401).json({
@@ -83,7 +84,8 @@ async function userLoginController(req, res) {
     user: {
       _id: user._id,
       email: user.email,
-      name: user.name
+      name: user.name,
+      systemUser: !!user.systemUser
     },
     token
   });

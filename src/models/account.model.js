@@ -7,6 +7,13 @@ const accountSchema = new mongoose.Schema({
     required:[true,"Account must be associated with a user"],
     index:true
   },
+  accountNumber: {
+    type: String,
+    required: [true, "Account number is required"],
+    unique: true,
+    immutable: true,
+    match: [/^\d{10}$/, "Account number must be a 10-digit numeric string"],
+  },
   status:{
     type: String,
     enum :{
@@ -26,6 +33,7 @@ const accountSchema = new mongoose.Schema({
 });
 
 accountSchema.index({user:1,status:1})
+accountSchema.index({ accountNumber: 1 }, { unique: true });
 
 accountSchema.methods.getBalance = async function () {
   const balanceData = await ledger.aggregate([

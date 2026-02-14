@@ -20,6 +20,13 @@ accountRoutes.get(
   accountController.getUserAccountController
 );
 
+// get /api/accounts/lookup/:accountNumber
+accountRoutes.get(
+  "/lookup/:accountNumber",
+  authMiddleware,
+  accountController.getAccountByNumberController
+);
+
 // get /api/accounts/balance: accountId
 
 accountRoutes.get("/balance/:accountId",authMiddleware,accountController.getAccountBalanceController)

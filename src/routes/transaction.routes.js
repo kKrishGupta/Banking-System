@@ -4,6 +4,13 @@ const transactionController = require("../controller/transaction.controller");
 
 const transactionRoutes = Router();
 
+// get /api/transaction
+transactionRoutes.get(
+  "/",
+  authMiddleware,
+  transactionController.getUserTransactions
+);
+
 // Normal user transaction
 // _post /api/transactions/
 // create new transaction 

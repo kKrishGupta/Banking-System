@@ -37,6 +37,12 @@ async function createTransaction(req, res) {
       });
     }
 
+    if (String(fromUserAccount.user) !== String(req.user._id)) {
+      return res.status(403).json({
+        message: "You can only transfer from your own account",
+      });
+    }
+
     if (fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE") {
       return res.status(400).json({
         message: "Both accounts must be ACTIVE",
@@ -164,7 +170,9 @@ async function createInitialFundsTransaction(req, res) {
       });
     }
 
-    const toUserAccount = await accountModel.findById(toAccount);
+    const toUserAccount = mongoose.Types.ObjectId.isValid(toAccount)
+      ? await accountModel.findById(toAccount)
+      : await accountModel.findOne({ accountNumber: toAccount });
 
     if (!toUserAccount) {
       return res.status(400).json({
@@ -188,7 +196,7 @@ async function createInitialFundsTransaction(req, res) {
     const [transaction] = await transactionModel.create(
       [{
         fromAccount: systemAccount._id,
-        toAccount,
+        toAccount: toUserAccount._id,
         amount,
         idempotencyKey,
         status: "PENDING",
@@ -260,9 +268,37 @@ async function getAccountBalanceController(req, res) {
   });
 }
 
+// =======================================================
+// GET USER TRANSACTIONS
+// =======================================================
+async function getUserTransactions(req, res) {
+  const limit = Math.min(parseInt(req.query.limit || "100", 10), 500);
+
+  const userAccounts = await accountModel.find({ user: req.user._id }).select("_id");
+  const accountIds = userAccounts.map((account) => account._id);
+
+  if (accountIds.length === 0) {
+    return res.status(200).json({ transactions: [] });
+  }
+
+  const transactions = await transactionModel
+    .find({
+      $or: [{ fromAccount: { $in: accountIds } }, { toAccount: { $in: accountIds } }],
+    })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate("fromAccount", "_id accountNumber")
+    .populate("toAccount", "_id accountNumber");
+
+  return res.status(200).json({
+    transactions,
+  });
+}
+
 
 module.exports = {
   createTransaction,
   createInitialFundsTransaction,
   getAccountBalanceController,
+  getUserTransactions,
 };
