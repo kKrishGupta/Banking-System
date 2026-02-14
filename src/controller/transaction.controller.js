@@ -5,21 +5,29 @@ const emailService = require("../services/email.service");
 const mongoose = require("mongoose");
 
 
-// ===============================================
+// =======================================================
 // NORMAL USER TRANSACTION
-// ===============================================
+// =======================================================
 async function createTransaction(req, res) {
   const session = await mongoose.startSession();
 
   try {
     const { fromAccount, toAccount, amount, idempotencyKey } = req.body;
 
+    // 1️⃣ Validation
     if (!fromAccount || !toAccount || !amount || !idempotencyKey) {
       return res.status(400).json({
         message: "fromAccount, toAccount, amount and idempotencyKey are required",
       });
     }
 
+    if (amount <= 0) {
+      return res.status(400).json({
+        message: "Amount must be greater than 0",
+      });
+    }
+
+    // 2️⃣ Fetch accounts
     const fromUserAccount = await accountModel.findById(fromAccount);
     const toUserAccount = await accountModel.findById(toAccount);
 
@@ -29,8 +37,15 @@ async function createTransaction(req, res) {
       });
     }
 
-    // Prevent duplicate transactions
+    if (fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE") {
+      return res.status(400).json({
+        message: "Both accounts must be ACTIVE",
+      });
+    }
+
+    // 3️⃣ Prevent duplicate transaction
     const existingTransaction = await transactionModel.findOne({ idempotencyKey });
+
     if (existingTransaction) {
       return res.status(200).json({
         message: "Transaction already processed",
@@ -38,12 +53,7 @@ async function createTransaction(req, res) {
       });
     }
 
-    if (fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE") {
-      return res.status(400).json({
-        message: "Both accounts must be ACTIVE",
-      });
-    }
-
+    // 4️⃣ Balance check
     const balance = await fromUserAccount.getBalance();
 
     if (balance < amount) {
@@ -52,10 +62,9 @@ async function createTransaction(req, res) {
       });
     }
 
-    // 🔥 Start DB transaction
+    // 5️⃣ Start DB transaction
     session.startTransaction();
 
-    // Create transaction
     const [transaction] = await transactionModel.create(
       [{
         fromAccount,
@@ -67,7 +76,7 @@ async function createTransaction(req, res) {
       { session }
     );
 
-    // Debit
+    // 6️⃣ Debit sender
     await ledgerModel.create([{
       account: fromAccount,
       amount,
@@ -75,7 +84,7 @@ async function createTransaction(req, res) {
       type: "DEBIT",
     }], { session });
 
-    // Credit
+    // 7️⃣ Credit receiver
     await ledgerModel.create([{
       account: toAccount,
       amount,
@@ -83,12 +92,14 @@ async function createTransaction(req, res) {
       type: "CREDIT",
     }], { session });
 
+    // 8️⃣ Complete transaction
     transaction.status = "COMPLETED";
     await transaction.save({ session });
 
     await session.commitTransaction();
     session.endSession();
 
+    // 9️⃣ Send email (outside DB transaction)
     await emailService.sendTransactionEmail(
       req.user.email,
       req.user.name,
@@ -115,10 +126,9 @@ async function createTransaction(req, res) {
 }
 
 
-
-// ===============================================
+// =======================================================
 // SYSTEM INITIAL FUNDS
-// ===============================================
+// =======================================================
 async function createInitialFundsTransaction(req, res) {
   const session = await mongoose.startSession();
 
@@ -131,14 +141,22 @@ async function createInitialFundsTransaction(req, res) {
       });
     }
 
-    // 🔐 Ensure only system user can call
+    if (amount <= 0) {
+      return res.status(400).json({
+        message: "Amount must be greater than 0",
+      });
+    }
+
+    // 🔐 Ensure system user
     if (!req.user.systemUser) {
       return res.status(403).json({
         message: "Only system user can perform this action",
       });
     }
 
+    // Prevent duplicate
     const existingTransaction = await transactionModel.findOne({ idempotencyKey });
+
     if (existingTransaction) {
       return res.status(200).json({
         message: "Transaction already processed",
@@ -147,13 +165,13 @@ async function createInitialFundsTransaction(req, res) {
     }
 
     const toUserAccount = await accountModel.findById(toAccount);
+
     if (!toUserAccount) {
       return res.status(400).json({
         message: "Invalid toAccount",
       });
     }
 
-    // Find system account
     const systemAccount = await accountModel.findOne({
       user: req.user._id,
       status: "ACTIVE",
@@ -178,7 +196,6 @@ async function createInitialFundsTransaction(req, res) {
       { session }
     );
 
-    // Debit system
     await ledgerModel.create([{
       account: systemAccount._id,
       amount,
@@ -186,7 +203,6 @@ async function createInitialFundsTransaction(req, res) {
       type: "DEBIT",
     }], { session });
 
-    // Credit user
     await ledgerModel.create([{
       account: toUserAccount._id,
       amount,
@@ -219,10 +235,9 @@ async function createInitialFundsTransaction(req, res) {
 }
 
 
-
-// ===============================================
-// GET ACCOUNT BALANCE
-// ===============================================
+// =======================================================
+// GET BALANCE
+// =======================================================
 async function getAccountBalanceController(req, res) {
   const { accountId } = req.params;
 
