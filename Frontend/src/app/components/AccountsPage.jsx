@@ -108,7 +108,7 @@ function AccountsPage() {
         {
     /* Account Information */
   }
-        <Card className="shadow-sm border-gray-200 bg-blue-50 border-blue-100">
+        <Card className="shadow-sm bg-blue-50 border-blue-100">
           <CardHeader>
             <CardTitle className="text-blue-900">Account Information</CardTitle>
           </CardHeader>

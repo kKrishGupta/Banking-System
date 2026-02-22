@@ -2,7 +2,18 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 
 const AuthContext = createContext(undefined);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+function normalizeApiBase(rawBase) {
+  const base = String(rawBase || "").trim().replace(/\/+$/, "");
+  if (!base) {
+    return "/api";
+  }
+  if (/\/api$/i.test(base)) {
+    return base;
+  }
+  return `${base}/api`;
+}
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE_URL || "/api");
 
 async function apiRequest(path, { method = "GET", body, token } = {}) {
   const headers = {};
