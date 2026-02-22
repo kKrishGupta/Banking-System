@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/sonner";
 import LandingPage from "./components/LandingPage";
@@ -11,7 +11,7 @@ import AccountsPage from "./components/AccountsPage";
 import AdminPage from "./components/AdminPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
-  return <HashRouter>
+  return <BrowserRouter>
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -51,7 +51,7 @@ function App() {
         </Routes>
         <Toaster position="top-right" richColors />
       </AuthProvider>
-    </HashRouter>;
+    </BrowserRouter>;
 }
 export {
   App as default
